@@ -2,6 +2,7 @@ import streamlit as st
 import sqlite3
 import pandas as pd
 import numpy as np
+import math
 
 # =========================
 # DATABASE SETUP
@@ -73,7 +74,9 @@ target = st.number_input("Target Time")
 
 if target > 0:
     Z = (target - total_TE) / sigma
-    prob = 0.5 * (1 + np.math.erf(Z / np.sqrt(2)))
+    prob = 0.5 * (1 + math.erf(Z / np.sqrt(2)))
+else:
+    prob = 1.0
 
     st.write(f"Z-score: {round(Z,2)}")
     st.write(f"Probability: {round(prob*100,2)}%")
