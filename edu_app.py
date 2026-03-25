@@ -42,7 +42,11 @@ seed_data()
 # APP
 # =========================
 st.title("Student Success Probability Predictor")
+st.caption("Built with PERT-based probabilistic modeling")
 
+# =========================
+# INPUT
+# =========================
 n = st.number_input("Number of Topics", min_value=1, value=3)
 
 data = []
@@ -60,41 +64,57 @@ for i in range(n):
     data.append([name, O, M, P, TE, Var])
 
 df = pd.DataFrame(data, columns=["Topic", "O", "M", "P", "TE", "Var"])
+st.subheader("Input Summary")
 st.write(df)
 
+# =========================
+# CALCULATION
+# =========================
 total_TE = df["TE"].sum()
 total_var = df["Var"].sum()
 sigma = np.sqrt(total_var)
 
-st.subheader("Summary")
+st.subheader("Project Summary")
 st.write(f"Total Expected Time: {round(total_TE,2)}")
-st.write(f"Std Dev: {round(sigma,2)}")
+st.write(f"Standard Deviation: {round(sigma,2)}")
 
-target = st.number_input("Target Time")
+# =========================
+# PROBABILITY
+# =========================
+target = st.number_input("Target Completion Time", min_value=0)
 
 if target > 0:
-    Z = (target - total_TE) / sigma
-    prob = 0.5 * (1 + math.erf(Z / np.sqrt(2)))
-else:
-    prob = 1.0
+    if sigma != 0:
+        Z = (target - total_TE) / sigma
+        prob = 0.5 * (1 + math.erf(Z / np.sqrt(2)))
 
-    st.write(f"Z-score: {round(Z,2)}")
-    st.write(f"Probability: {round(prob*100,2)}%")
+        st.subheader("Probability Analysis")
+        st.write(f"Z-score: {round(Z,2)}")
+        st.write(f"Probability of Completion: {round(prob*100,2)}%")
+    else:
+        st.warning("Standard deviation is zero, cannot compute probability.")
 
-# Save
+# =========================
+# SAVE TO DATABASE
+# =========================
 if st.button("Save Topics"):
     for row in data:
         c.execute("INSERT INTO study_plan (topic, O, M, P) VALUES (?, ?, ?, ?)",
                   (row[0], row[1], row[2], row[3]))
     conn.commit()
-    st.success("Saved!")
+    st.success("Topics saved to database!")
 
-# Show dataset
-st.subheader("Saved Topics")
+# =========================
+# SHOW DATASET
+# =========================
+st.subheader("Saved Topics (Dataset)")
 df_db = pd.read_sql_query("SELECT * FROM study_plan", conn)
 st.write(df_db)
 
-# Insight
-hardest = df.loc[df["Var"].idxmax()]
-st.subheader("Most Challenging Topic")
-st.write(hardest["Topic"])
+# =========================
+# INSIGHT
+# =========================
+if len(df) > 0:
+    hardest = df.loc[df["Var"].idxmax()]
+    st.subheader("Most Challenging Topic")
+    st.write(hardest["Topic"])
